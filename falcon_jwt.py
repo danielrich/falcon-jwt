@@ -99,7 +99,9 @@ class AuthMiddleware(object):
                                           challenges,
                                           href='http://docs.example.com/auth')
 
-        if not self._token_is_valid(token):
+        decoded_token = self._decode_and_verify(token)
+
+        if not decoded_token:
             description = ('The provided auth token is not valid. '
                            'Please request a new token and try again.')
 
@@ -108,14 +110,17 @@ class AuthMiddleware(object):
                                           challenges,
                                           href='http://docs.example.com/auth')
 
-    def _token_is_valid(self, token):
+        req.context['user'] = decoded_token['user_identifier']
+        # we need to set the user into the context so that things can be used appropriatly.
+
+    def _decode_and_verify(self, token):
         try:
             options = {'verify_exp': True}
-            jwt.decode(token, self.secret, verify='True', algorithms=['HS256'], options=options)
-            return True
+            payload = jwt.decode(token, self.secret, verify='True', algorithms=['HS256'], options=options)
+            return payload
         except jwt.DecodeError as err:
             logging.debug("Token validation failed Error :{}".format(str(err)))
-            return False
+            return None
 
 
 def get_auth_objects(get_user, secret, token_expiration_seconds, token_opts=DEFAULT_TOKEN_OPTS): # pylint: disable=dangerous-default-value
