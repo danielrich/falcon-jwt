@@ -17,10 +17,10 @@ class LoginResource(object):
         self.secret = secret
         self.token_expiration_seconds = token_expiration_seconds
         self.token_opts = token_opts or DEFAULT_TOKEN_OPTS
-        logging.debug(token_opts)
+        logging.info(token_opts)
 
     def on_post(self, req, resp):
-        logging.debug("Reached on_post() in Login")
+        logging.info("Reached on_post() in Login")
         try:
             req_stream = req.stream.read()
             if isinstance(req_stream, bytes):
@@ -34,7 +34,7 @@ class LoginResource(object):
         password = data["password"]
         user = self.get_user(email)
         if user and sha256_crypt.verify(password, user["password"]):
-            logging.debug("Valid user, jwt'ing!")
+            logging.info("Valid user, jwt'ing!")
             self.add_new_jwtoken(resp, email)
         else:
             raise falcon.HTTPUnauthorized('Who Do You Think You Are?',
@@ -48,15 +48,15 @@ class LoginResource(object):
         # add a JSON web token to the response headers
         if not user_identifier:
             raise Exception('Empty user_identifer passed to set JWT')
-        logging.debug(
+        logging.info(
             "Creating new JWT, user_identifier is: {}".format(user_identifier))
         token = jwt.encode({'user_identifier': user_identifier,
                             'exp': datetime.utcnow() + timedelta(seconds=self.token_expiration_seconds)},
                            self.secret,
                            algorithm='HS256').decode("utf-8")
-        logging.debug("Setting TOKEN!")
+        logging.info("Setting TOKEN!")
         self.token_opts["value"] = token
-        logging.debug(self.token_opts)
+        logging.info(self.token_opts)
         if self.token_opts.get('location', 'cookie') == 'cookie': # default to cookie
             resp.set_cookie(**self.token_opts)
         elif self.token_opts['location'] == 'header':
@@ -75,9 +75,9 @@ class AuthMiddleware(object):
         self.token_opts = token_opts or DEFAULT_TOKEN_OPTS
 
     def process_resource(self, req, resp, resource, params): # pylint: disable=unused-argument
-        logging.debug("Processing request in AuthMiddleware: ")
+        logging.info("Processing request in AuthMiddleware: ")
         if isinstance(resource, LoginResource):
-            logging.debug("LOGIN, DON'T NEED TOKEN")
+            logging.info("LOGIN, DON'T NEED TOKEN")
             return
 
         challenges = ['Hello="World"']  # I think this is very irrelevant
@@ -119,7 +119,7 @@ class AuthMiddleware(object):
             payload = jwt.decode(token, self.secret, verify='True', algorithms=['HS256'], options=options)
             return payload
         except jwt.DecodeError as err:
-            logging.debug("Token validation failed Error :{}".format(str(err)))
+            logging.info("Token validation failed Error :{}".format(str(err)))
             return None
 
 
