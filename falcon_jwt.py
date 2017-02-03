@@ -118,7 +118,7 @@ class AuthMiddleware(object):
             options = {'verify_exp': True}
             payload = jwt.decode(token, self.secret, verify='True', algorithms=['HS256'], options=options)
             return payload
-        except jwt.DecodeError as err:
+        except (jwt.DecodeError, jwt.ExpiredSignatureError) as err:
             logging.info("Token validation failed Error :{}".format(str(err)))
             return None
 
