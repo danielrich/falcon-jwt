@@ -82,10 +82,21 @@ class AuthMiddleware(object):
 
         challenges = ['Hello="World"']  # I think this is very irrelevant
 
+        # disable auth for CORS requests.
+        if req.method == 'OPTIONS':
+           logging.info("CORS preflight, no authorization")
+           return
+
+        # switch to #Authorization: Bearer token for location
         if self.token_opts.get('location', 'cookie') == 'cookie':
             token = req.cookies.get(self.token_opts.get("name"))
         elif self.token_opts['location'] == 'header':
-            token = req.get_header(self.token_opts.get("name"), required=True)
+            token = req.get_header('Authorization', required=True)
+            if 'Bearer' not in token[0:7]:
+                # wrong auth type
+                token = None
+            else:
+                token = token[7:]
         else:
             # Unrecognized token location
             token = None
